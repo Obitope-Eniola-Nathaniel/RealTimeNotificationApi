@@ -1,0 +1,526 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Real-Time Notifications | Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+
+    <style>
+        :root {
+            --bg-gradient: radial-gradient(circle at top left, #1d4ed8, #020617 55%);
+            --card-bg: rgba(15, 23, 42, 0.9);
+            --text-main: #e5e7eb;
+            --text-muted: #9ca3af;
+            --border-subtle: rgba(148, 163, 184, 0.25);
+            --accent: #22c55e;
+            --accent-soft: rgba(34, 197, 94, 0.18);
+            --danger: #ef4444;
+            --danger-soft: rgba(239, 68, 68, 0.18);
+            --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.7);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 960px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(148, 163, 184, 0.4);
+            overflow: hidden;
+            backdrop-filter: blur(18px);
+        }
+
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .title-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .title-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(55, 65, 81, 0.6);
+            border: 1px solid rgba(75, 85, 99, 0.8);
+            color: #e5e7eb;
+        }
+
+        .env-pill {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.6);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-muted);
+        }
+
+        .title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 11px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 500;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .status-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            background: var(--accent);
+            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+            animation: pulse 1.8s infinite;
+        }
+
+        .status.error {
+            background: var(--danger-soft);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+            .status.error .status-dot {
+                background: var(--danger);
+                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25);
+            }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            60% {
+                transform: scale(1.35);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .card-body {
+            display: grid;
+            grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
+            gap: 1px;
+            background: rgba(15,23,42,0.8);
+        }
+
+        @media (max-width: 768px) {
+            .card-body {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        .column {
+            padding: 16px 18px;
+        }
+
+            .column + .column {
+                border-left: 1px solid var(--border-subtle);
+            }
+
+        @media (max-width: 768px) {
+            .column + .column {
+                border-left: none;
+                border-top: 1px solid var(--border-subtle);
+            }
+        }
+
+        .column-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .message-list {
+            margin-top: 4px;
+            max-height: 340px;
+            overflow-y: auto;
+            padding-right: 6px;
+        }
+
+        .message-empty {
+            font-size: 13px;
+            color: var(--text-muted);
+            padding: 14px 10px;
+            border-radius: 12px;
+            border: 1px dashed rgba(148,163,184,0.4);
+            background: rgba(15,23,42,0.7);
+            text-align: center;
+        }
+
+        .message-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 9px 6px 9px 2px;
+            border-bottom: 1px solid rgba(31, 41, 55, 0.75);
+        }
+
+            .message-item:last-child {
+                border-bottom: none;
+            }
+
+        .message-timeline-dot {
+            margin-top: 4px;
+            width: 9px;
+            height: 9px;
+            border-radius: 999px;
+            flex-shrink: 0;
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .message-text {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 3px;
+            word-break: break-word;
+        }
+
+        .message-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .meta-pill {
+            padding: 2px 7px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.5);
+            background: rgba(15,23,42, 0.9);
+        }
+
+        .meta-time {
+            opacity: 0.85;
+        }
+
+        .type-pill {
+            padding: 2px 7px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .type-created {
+            background: rgba(34,197,94,0.12);
+            color: #4ade80;
+            border: 1px solid rgba(34,197,94,0.6);
+        }
+
+        .type-updated {
+            background: rgba(59,130,246,0.12);
+            color: #60a5fa;
+            border: 1px solid rgba(59,130,246,0.6);
+        }
+
+        .type-deleted {
+            background: rgba(239,68,68,0.12);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.6);
+        }
+
+        .type-info {
+            background: rgba(148,163,184,0.12);
+            color: #e5e7eb;
+            border: 1px solid rgba(148,163,184,0.6);
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .legend-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(55,65,81,0.85);
+            background: rgba(15,23,42,0.9);
+        }
+
+        .legend-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+        }
+
+        .footer {
+            font-size: 11px;
+            color: var(--text-muted);
+            padding: 9px 18px 12px;
+            border-top: 1px solid var(--border-subtle);
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+            .footer strong {
+                color: #e5e7eb;
+                font-weight: 500;
+            }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <div class="card">
+            <div class="card-header">
+                <div class="title-block">
+                    <div class="title-row">
+                        <div class="pill">Real-time</div>
+                        <div class="title">Task Notifications</div>
+                    </div>
+                    <div class="subtitle">Live events from your ASP.NET Core + SignalR API.</div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <div class="env-pill">Environment: Development</div>
+                    <div id="status" class="status">
+                        <span class="status-dot"></span>
+                        <span id="status-text">Connecting…</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <!-- Left: stream -->
+                <div class="column">
+                    <div class="column-title">Stream</div>
+                    <div id="messages" class="message-list">
+                        <div id="empty-state" class="message-empty">
+                            No events yet. Trigger a task action to see updates here.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: meta -->
+                <div class="column">
+                    <div class="column-title">Legend</div>
+
+                    <div class="legend">
+                        <div class="legend-pill">
+                            <span class="legend-dot" style="background:#4ade80;"></span>
+                            <span>Created</span>
+                        </div>
+                        <div class="legend-pill">
+                            <span class="legend-dot" style="background:#60a5fa;"></span>
+                            <span>Updated</span>
+                        </div>
+                        <div class="legend-pill">
+                            <span class="legend-dot" style="background:#f87171;"></span>
+                            <span>Deleted</span>
+                        </div>
+                        <div class="legend-pill">
+                            <span class="legend-dot" style="background:#9ca3af;"></span>
+                            <span>Other</span>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                        Typical messages:
+                        <br />• <code style="font-size:11px;">Task created: Title</code>
+                        <br />• <code style="font-size:11px;">Task updated: Title</code>
+                        <br />• <code style="font-size:11px;">Task deleted: id</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                <span><strong>Status:</strong> <span id="footer-status">Connecting…</span></span>
+                <span>ASP.NET Core · SignalR · MongoDB</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const statusEl = document.getElementById("status");
+        const statusTextEl = document.getElementById("status-text");
+        const footerStatusEl = document.getElementById("footer-status");
+        const messagesEl = document.getElementById("messages");
+        const emptyStateEl = document.getElementById("empty-state");
+
+        function setStatus(ok, message) {
+            if (ok) {
+                statusEl.classList.remove("error");
+                statusTextEl.textContent = message || "Connected";
+                footerStatusEl.textContent = "Connected";
+            } else {
+                statusEl.classList.add("error");
+                statusTextEl.textContent = message || "Connection error";
+                footerStatusEl.textContent = "Error";
+            }
+        }
+
+        function detectType(message) {
+            const m = message.toLowerCase();
+            if (m.includes("created")) return "created";
+            if (m.includes("updated")) return "updated";
+            if (m.includes("deleted")) return "deleted";
+            return "info";
+        }
+
+        function addMessage(message) {
+            if (emptyStateEl) {
+                emptyStateEl.remove();
+            }
+
+            const type = detectType(message);
+
+            const item = document.createElement("div");
+            item.className = "message-item";
+
+            const dot = document.createElement("div");
+            dot.className = "message-timeline-dot";
+
+            if (type === "created") dot.style.background = "#4ade80";
+            else if (type === "updated") dot.style.background = "#60a5fa";
+            else if (type === "deleted") dot.style.background = "#f87171";
+            else dot.style.background = "#9ca3af";
+
+            const content = document.createElement("div");
+            content.className = "message-content";
+
+            const title = document.createElement("div");
+            title.className = "message-text";
+            title.textContent = message;
+
+            const meta = document.createElement("div");
+            meta.className = "message-meta";
+
+            const typePill = document.createElement("span");
+            typePill.className = "type-pill " + (
+                type === "created" ? "type-created" :
+                    type === "updated" ? "type-updated" :
+                        type === "deleted" ? "type-deleted" : "type-info"
+            );
+            typePill.textContent =
+                type === "created" ? "Created" :
+                    type === "updated" ? "Updated" :
+                        type === "deleted" ? "Deleted" : "Info";
+
+            const source = document.createElement("span");
+            source.className = "meta-pill";
+            source.textContent = "NotificationHub";
+
+            const time = document.createElement("span");
+            time.className = "meta-time";
+            time.textContent = new Date().toLocaleTimeString();
+
+            meta.appendChild(typePill);
+            meta.appendChild(source);
+            meta.appendChild(time);
+
+            content.appendChild(title);
+            content.appendChild(meta);
+
+            item.appendChild(dot);
+            item.appendChild(content);
+
+            messagesEl.appendChild(item);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/hubs/notifications")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.on("ReceiveMessage", (message) => {
+            addMessage(message);
+        });
+
+        connection
+            .start()
+            .then(() => setStatus(true, "Connected"))
+            .catch((err) => {
+                console.error(err.toString());
+                setStatus(false, "Failed to connect");
+            });
+
+        connection.onreconnecting(() => {
+            setStatus(false, "Reconnecting…");
+        });
+
+        connection.onreconnected(() => {
+            setStatus(true, "Connected");
+        });
+
+        connection.onclose(() => {
+            setStatus(false, "Connection closed");
+        });
+    </script>
+</body>
+</html>
