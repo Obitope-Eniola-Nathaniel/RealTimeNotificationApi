@@ -1,42 +1,89 @@
+// Bring in namespaces (libraries) we need.
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
 using RealTimeNotificationApi.Filters;
 using RealTimeNotificationApi.Hubs;
 using RealTimeNotificationApi.Infrastructure;
 using RealTimeNotificationApi.Security;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args); // Create app builder
 
-// ---- CONFIGURE SERVICES (like app.use(...) & DI registrations) ----
+// =======================
+// 1. CONFIGURE SERVICES
+// =======================
 
-builder.Services.AddScoped<IUserRepository, MongoUserRepository>();
-
-
-// Bind MongoDB settings from appsettings.json to MongoDbSettings class
+// Bind MongoDb section from appsettings.json to MongoDbSettings class
 builder.Services.Configure<MongoDbSettings>(
     builder.Configuration.GetSection("MongoDb"));
 
-// Register our task repository so controllers can ask for ITaskRepository
+// Register repositories so we can inject them via interfaces
 builder.Services.AddScoped<ITaskRepository, MongoTaskRepository>();
+builder.Services.AddScoped<IUserRepository, MongoUserRepository>();
+builder.Services.AddScoped<INotificationRepository, MongoNotificationRepository>();
 
-// Add controller support (attribute routing, model binding, etc.)
+// Add controllers (so [ApiController] classes work)
 builder.Services.AddControllers(options =>
 {
-    // Register a global logging filter that runs on every request
+    // Add global logging filter (runs on every request)
     options.Filters.Add<LogActionFilter>();
 });
 
-// Add SignalR for real-time communication (websockets etc.)
+// Add SignalR for real-time
 builder.Services.AddSignalR();
 
-// Register filters and encryption service so they can be injected
+// Register filters and encryption service for DI
 builder.Services.AddScoped<LogActionFilter>();
 builder.Services.AddScoped<EncryptResponseFilter>();
 builder.Services.AddScoped<EncryptionService>();
 
-// Swagger for API documentation & testing
+// Swagger for API docs & testing
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Very open CORS policy for demo (allow any origin/method/header)
+// Configure JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("Jwt"); // read Jwt section
+var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);     // convert key string to bytes
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme) // use Bearer auth
+    .AddJwtBearer(options =>
+    {
+        // How to validate incoming tokens
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidIssuer = jwtSettings["Issuer"],
+            ValidAudience = jwtSettings["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true
+        };
+
+        // Allow SignalR to pass token via query string
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // Try to read token from "access_token" query string
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                // If this is a hub request, use that token
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/notifications"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+    });
+
+// Configure CORS (allow any origin for demo)
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -44,38 +91,41 @@ builder.Services.AddCors(options =>
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials()
-            .SetIsOriginAllowed(_ => true));
+            .SetIsOriginAllowed(_ => true)); // allow all origins
 });
 
-var app = builder.Build();
+var app = builder.Build(); // Build the app
 
-// ---- CONFIGURE MIDDLEWARE PIPELINE (like app.use(...) order) ----
+// =======================
+// 2. CONFIGURE PIPELINE
+// =======================
 
 if (app.Environment.IsDevelopment())
 {
-    // Enable Swagger UI at /swagger in Development
+    // Enable Swagger in development
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Force HTTPS when possible
+// Redirect HTTP to HTTPS
 app.UseHttpsRedirection();
 
 // Apply CORS policy
 app.UseCors();
 
-// (Later we'll add app.UseAuthentication(); before UseAuthorization())
+// IMPORTANT: authentication before authorization
+app.UseAuthentication();
 app.UseAuthorization();
 
-// Map attribute-routed controllers (e.g. TasksController)
+// Map controllers (REST API routes)
 app.MapControllers();
 
 // Map SignalR hub at /hubs/notifications
 app.MapHub<NotificationHub>("/hubs/notifications");
 
-// Serve index.html and other static files from wwwroot
+// Serve index.html and static files from wwwroot
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Start the web app
+// Run the app
 app.Run();

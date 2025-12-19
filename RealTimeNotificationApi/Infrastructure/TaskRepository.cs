@@ -3,19 +3,17 @@ using MongoDB.Driver;
 
 namespace RealTimeNotificationApi.Infrastructure
 {
+    // C# model for a task document in MongoDB
     public class TaskItem
     {
-        // Id is optional in the request (nullable string)
-        public string? Id { get; set; }
-
-        // These can stay required / non-nullable
+        public string? Id { get; set; }           // string ID (we set GUID in code)
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
         public bool IsCompleted { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
-
+    // Interface (contract) for our task repository
     public interface ITaskRepository
     {
         Task<List<TaskItem>> GetAllAsync();
@@ -25,21 +23,28 @@ namespace RealTimeNotificationApi.Infrastructure
         Task<bool> DeleteAsync(string id);
     }
 
+    // Implementation using MongoDB
     public class MongoTaskRepository : ITaskRepository
     {
         private readonly IMongoCollection<TaskItem> _collection;
 
+        // We inject MongoDbSettings (via IOptions) to get connection info
         public MongoTaskRepository(IOptions<MongoDbSettings> options)
         {
             var settings = options.Value;
 
+            // Connect to Mongo using connection string
             var client = new MongoClient(settings.ConnectionString);
+
+            // Get database
             var database = client.GetDatabase(settings.DatabaseName);
+
+            // Get Tasks collection
             _collection = database.GetCollection<TaskItem>(settings.TasksCollectionName);
         }
 
         public async Task<List<TaskItem>> GetAllAsync() =>
-            await _collection.Find(_ => true).ToListAsync();
+            await _collection.Find(_ => true).ToListAsync(); // {} filter = all
 
         public async Task<TaskItem?> GetByIdAsync(string id) =>
             await _collection.Find(x => x.Id == id).FirstOrDefaultAsync();

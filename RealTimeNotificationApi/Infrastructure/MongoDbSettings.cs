@@ -1,5 +1,6 @@
 ﻿namespace RealTimeNotificationApi.Infrastructure
 {
+    // This matches the "MongoDb" section in appsettings.json
     public class MongoDbSettings
     {
         public string ConnectionString { get; set; } = null!;

@@ -3,19 +3,22 @@ using MongoDB.Driver;
 
 namespace RealTimeNotificationApi.Infrastructure
 {
+    // User document model
     public class User
     {
         public string Id { get; set; } = null!;
         public string Email { get; set; } = null!;
-        public string PasswordHash { get; set; } = null!; // demo: we could use plain text, but better to hash
+        public string PasswordHash { get; set; } = null!; // DEMO: plain text or simple hash
     }
 
+    // User repository contract
     public interface IUserRepository
     {
         Task<User?> GetByEmailAsync(string email);
         Task<User> CreateAsync(User user);
     }
 
+    // Mongo implementation
     public class MongoUserRepository : IUserRepository
     {
         private readonly IMongoCollection<User> _collection;
@@ -25,7 +28,7 @@ namespace RealTimeNotificationApi.Infrastructure
             var settings = options.Value;
             var client = new MongoClient(settings.ConnectionString);
             var database = client.GetDatabase(settings.DatabaseName);
-            _collection = database.GetCollection<User>("Users");
+            _collection = database.GetCollection<User>("Users"); // collection name
         }
 
         public async Task<User?> GetByEmailAsync(string email) =>
