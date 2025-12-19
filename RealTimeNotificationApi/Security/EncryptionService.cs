@@ -3,12 +3,15 @@ using System.Text;
 
 namespace RealTimeNotificationApi.Security
 {
-    // DEMO ONLY – do not hardcode keys in real apps
+    // Simple AES encryption service (DEMO ONLY: key/IV are hard-coded)
     public class EncryptionService
     {
-        private const string Key = "0123456789abcdef0123456789abcdef"; // 32 chars
-        private const string IV = "abcdef0123456789";                  // 16 chars
+        // 32-char key (256 bits)
+        private const string Key = "0123456789abcdef0123456789abcdef";
+        // 16-char IV (128 bits)
+        private const string IV = "abcdef0123456789";
 
+        // Encrypts plain text string -> base64 string
         public string Encrypt(string plainText)
         {
             using var aes = Aes.Create();
@@ -27,6 +30,7 @@ namespace RealTimeNotificationApi.Security
             return Convert.ToBase64String(ms.ToArray());
         }
 
+        // Decrypts base64 cipherText -> plain string
         public string Decrypt(string cipherText)
         {
             var buffer = Convert.FromBase64String(cipherText);
