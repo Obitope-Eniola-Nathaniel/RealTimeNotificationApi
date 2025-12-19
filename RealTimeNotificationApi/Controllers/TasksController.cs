@@ -5,13 +5,17 @@ using RealTimeNotificationApi.Infrastructure;
 
 namespace RealTimeNotificationApi.Controllers
 {
+    // Marks this as a Web API controller and sets base route: /api/tasks
     [ApiController]
     [Route("api/[controller]")]
     public class TasksController : ControllerBase
     {
+        // Repository for MongoDB operations
         private readonly ITaskRepository _repository;
+        // SignalR hub context to broadcast messages
         private readonly IHubContext<NotificationHub> _hubContext;
 
+        // Dependencies are injected by ASP.NET Core
         public TasksController(
             ITaskRepository repository,
             IHubContext<NotificationHub> hubContext)
@@ -20,6 +24,8 @@ namespace RealTimeNotificationApi.Controllers
             _hubContext = hubContext;
         }
 
+        // GET /api/tasks
+        // Returns all tasks from MongoDB
         [HttpGet]
         public async Task<ActionResult<List<TaskItem>>> GetAll()
         {
@@ -27,6 +33,8 @@ namespace RealTimeNotificationApi.Controllers
             return Ok(tasks);
         }
 
+        // GET /api/tasks/{id}
+        // Returns a single task by Id
         [HttpGet("{id}")]
         public async Task<ActionResult<TaskItem>> GetById(string id)
         {
@@ -35,24 +43,28 @@ namespace RealTimeNotificationApi.Controllers
             return Ok(task);
         }
 
+        // POST /api/tasks
+        // Creates a new task and broadcasts a "created" notification
         [HttpPost]
         public async Task<ActionResult<TaskItem>> Create(TaskItem task)
         {
-            // For demo, ensure ID is set (Mongo can also generate)
+            // If client didn't send Id, generate a GUID
             if (string.IsNullOrEmpty(task.Id))
-            {
                 task.Id = Guid.NewGuid().ToString();
-            }
 
             var created = await _repository.CreateAsync(task);
 
+            // Notify all connected SignalR clients
             await _hubContext.Clients.All
                 .SendAsync("ReceiveMessage", $"Task created: {created.Title}");
 
+            // Return 201 Created with location header pointing to GetById
             return CreatedAtAction(nameof(GetById),
                 new { id = created.Id }, created);
         }
 
+        // PUT /api/tasks/{id}
+        // Updates an existing task and sends an "updated" notification
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, TaskItem task)
         {
@@ -64,9 +76,11 @@ namespace RealTimeNotificationApi.Controllers
             await _hubContext.Clients.All
                 .SendAsync("ReceiveMessage", $"Task updated: {task.Title}");
 
-            return NoContent();
+            return NoContent(); // 204
         }
 
+        // DELETE /api/tasks/{id}
+        // Deletes a task and sends a "deleted" notification
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
