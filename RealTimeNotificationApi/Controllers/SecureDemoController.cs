@@ -4,9 +4,11 @@ using RealTimeNotificationApi.Filters;
 namespace RealTimeNotificationApi.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/[controller]")] // /api/secureDemo
     public class SecureDemoController : ControllerBase
     {
+        // GET /api/secureDemo/secret
+        // Response will be encrypted by EncryptResponseFilter
         [HttpGet("secret")]
         [ServiceFilter(typeof(EncryptResponseFilter))]
         public IActionResult GetSecret()

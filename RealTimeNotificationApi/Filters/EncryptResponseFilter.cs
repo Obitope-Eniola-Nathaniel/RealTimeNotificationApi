@@ -5,6 +5,7 @@ using System.Text.Json;
 
 namespace RealTimeNotificationApi.Filters
 {
+    // Encrypts any ObjectResult and wraps it as { encrypted: "<cipher>" }
     public class EncryptResponseFilter : IAsyncResultFilter
     {
         private readonly EncryptionService _encryptionService;
@@ -18,16 +19,17 @@ namespace RealTimeNotificationApi.Filters
             ResultExecutingContext context,
             ResultExecutionDelegate next)
         {
+            // Only handle object results
             if (context.Result is ObjectResult objectResult &&
                 objectResult.Value is not null)
             {
-                // Serialize
+                // Convert object to JSON string
                 var json = JsonSerializer.Serialize(objectResult.Value);
 
-                // Encrypt
+                // Encrypt JSON
                 var cipher = _encryptionService.Encrypt(json);
 
-                // Replace result
+                // Replace result with encrypted payload
                 context.Result = new OkObjectResult(new
                 {
                     encrypted = cipher

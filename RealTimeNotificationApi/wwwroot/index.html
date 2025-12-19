@@ -5,24 +5,32 @@
     <title>Real-Time Notifications | Demo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+    <!-- Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- SignalR client -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
 
     <style>
         :root {
             --bg-gradient: radial-gradient(circle at top left, #1d4ed8, #020617 55%);
-            --card-bg: rgba(15, 23, 42, 0.9);
+            --card-bg: rgba(15, 23, 42, 0.92);
             --text-main: #e5e7eb;
             --text-muted: #9ca3af;
             --border-subtle: rgba(148, 163, 184, 0.25);
-            --accent: #22c55e;
-            --accent-soft: rgba(34, 197, 94, 0.18);
-            --danger: #ef4444;
-            --danger-soft: rgba(239, 68, 68, 0.18);
             --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.7);
+            --ok: #22c55e;
+            --ok-soft: rgba(34, 197, 94, 0.18);
+            --warn: #f59e0b;
+            --warn-soft: rgba(245, 158, 11, 0.18);
+            --bad: #ef4444;
+            --bad-soft: rgba(239, 68, 68, 0.18);
+            --created: #4ade80;
+            --updated: #60a5fa;
+            --deleted: #f87171;
+            --other: #9ca3af;
         }
 
         * {
@@ -44,19 +52,19 @@
 
         .app-shell {
             width: 100%;
-            max-width: 960px;
+            max-width: 980px;
         }
 
         .card {
             background: var(--card-bg);
             border-radius: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.38);
             box-shadow: var(--shadow-soft);
-            border: 1px solid rgba(148, 163, 184, 0.4);
             overflow: hidden;
             backdrop-filter: blur(18px);
         }
 
-        .card-header {
+        .header {
             padding: 16px 20px;
             border-bottom: 1px solid var(--border-subtle);
             display: flex;
@@ -90,22 +98,29 @@
             color: #e5e7eb;
         }
 
+        .title {
+            font-size: 18px;
+            font-weight: 650;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .right-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
         .env-pill {
             font-size: 11px;
             padding: 4px 10px;
             border-radius: 999px;
             border: 1px solid rgba(148, 163, 184, 0.6);
             background: rgba(15, 23, 42, 0.9);
-            color: var(--text-muted);
-        }
-
-        .title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .subtitle {
-            font-size: 12px;
             color: var(--text-muted);
         }
 
@@ -116,30 +131,41 @@
             padding: 6px 11px;
             border-radius: 999px;
             font-size: 12px;
-            font-weight: 500;
-            background: var(--accent-soft);
-            color: var(--accent);
+            font-weight: 600;
             border: 1px solid rgba(34, 197, 94, 0.5);
+            background: var(--ok-soft);
+            color: var(--ok);
         }
 
         .status-dot {
             width: 9px;
             height: 9px;
             border-radius: 999px;
-            background: var(--accent);
-            box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.25);
+            background: var(--ok);
+            box-shadow: 0 0 0 6px rgba(34,197,94,0.25);
             animation: pulse 1.8s infinite;
         }
 
+        .status.warn {
+            border-color: rgba(245, 158, 11, 0.55);
+            background: var(--warn-soft);
+            color: var(--warn);
+        }
+
+            .status.warn .status-dot {
+                background: var(--warn);
+                box-shadow: 0 0 0 6px rgba(245,158,11,0.25);
+            }
+
         .status.error {
-            background: var(--danger-soft);
-            color: var(--danger);
-            border-color: rgba(239, 68, 68, 0.5);
+            border-color: rgba(239, 68, 68, 0.55);
+            background: var(--bad-soft);
+            color: var(--bad);
         }
 
             .status.error .status-dot {
-                background: var(--danger);
-                box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.25);
+                background: var(--bad);
+                box-shadow: 0 0 0 6px rgba(239,68,68,0.25);
             }
 
         @keyframes pulse {
@@ -156,50 +182,50 @@
             }
         }
 
-        .card-body {
+        .body {
             display: grid;
-            grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.1fr);
+            grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.2fr);
             gap: 1px;
             background: rgba(15,23,42,0.8);
         }
 
-        @media (max-width: 768px) {
-            .card-body {
-                grid-template-columns: minmax(0, 1fr);
+        @media (max-width: 860px) {
+            .body {
+                grid-template-columns: 1fr;
             }
         }
 
-        .column {
+        .col {
             padding: 16px 18px;
         }
 
-            .column + .column {
+            .col + .col {
                 border-left: 1px solid var(--border-subtle);
             }
 
-        @media (max-width: 768px) {
-            .column + .column {
+        @media (max-width: 860px) {
+            .col + .col {
                 border-left: none;
                 border-top: 1px solid var(--border-subtle);
             }
         }
 
-        .column-title {
+        .col-title {
             font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.12em;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
 
-        .message-list {
+        .messages {
             margin-top: 4px;
-            max-height: 340px;
+            max-height: 360px;
             overflow-y: auto;
             padding-right: 6px;
         }
 
-        .message-empty {
+        .empty {
             font-size: 13px;
             color: var(--text-muted);
             padding: 14px 10px;
@@ -209,7 +235,7 @@
             text-align: center;
         }
 
-        .message-item {
+        .msg {
             display: flex;
             align-items: flex-start;
             gap: 10px;
@@ -217,31 +243,33 @@
             border-bottom: 1px solid rgba(31, 41, 55, 0.75);
         }
 
-            .message-item:last-child {
+            .msg:last-child {
                 border-bottom: none;
             }
 
-        .message-timeline-dot {
+        .dot {
             margin-top: 4px;
             width: 9px;
             height: 9px;
             border-radius: 999px;
             flex-shrink: 0;
+            background: var(--other);
+            box-shadow: 0 0 0 4px rgba(148,163,184,0.12);
         }
 
-        .message-content {
+        .content {
             flex: 1;
             min-width: 0;
         }
 
-        .message-text {
+        .text {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 3px;
             word-break: break-word;
         }
 
-        .message-meta {
+        .meta {
             font-size: 11px;
             color: var(--text-muted);
             display: flex;
@@ -250,53 +278,50 @@
             flex-wrap: wrap;
         }
 
-        .meta-pill {
+        .tag {
             padding: 2px 7px;
             border-radius: 999px;
-            border: 1px solid rgba(148, 163, 184, 0.5);
-            background: rgba(15,23,42, 0.9);
+            border: 1px solid rgba(148,163,184,0.5);
+            background: rgba(15,23,42,0.92);
         }
 
-        .meta-time {
-            opacity: 0.85;
-        }
-
-        .type-pill {
+        .type {
             padding: 2px 7px;
             border-radius: 999px;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 700;
+            border: 1px solid transparent;
         }
 
-        .type-created {
-            background: rgba(34,197,94,0.12);
-            color: #4ade80;
-            border: 1px solid rgba(34,197,94,0.6);
-        }
+            .type.created {
+                background: rgba(34,197,94,0.12);
+                color: var(--created);
+                border-color: rgba(34,197,94,0.6);
+            }
 
-        .type-updated {
-            background: rgba(59,130,246,0.12);
-            color: #60a5fa;
-            border: 1px solid rgba(59,130,246,0.6);
-        }
+            .type.updated {
+                background: rgba(59,130,246,0.12);
+                color: var(--updated);
+                border-color: rgba(59,130,246,0.6);
+            }
 
-        .type-deleted {
-            background: rgba(239,68,68,0.12);
-            color: #f87171;
-            border: 1px solid rgba(239,68,68,0.6);
-        }
+            .type.deleted {
+                background: rgba(239,68,68,0.12);
+                color: var(--deleted);
+                border-color: rgba(239,68,68,0.6);
+            }
 
-        .type-info {
-            background: rgba(148,163,184,0.12);
-            color: #e5e7eb;
-            border: 1px solid rgba(148,163,184,0.6);
-        }
+            .type.other {
+                background: rgba(148,163,184,0.12);
+                color: #e5e7eb;
+                border-color: rgba(148,163,184,0.6);
+            }
 
         .legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            margin-top: 4px;
+            gap: 8px;
+            margin-top: 6px;
         }
 
         .legend-pill {
@@ -317,6 +342,73 @@
             border-radius: 999px;
         }
 
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(148,163,184,0.3);
+            background: rgba(15,23,42,0.55);
+        }
+
+        label {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 92px;
+            resize: vertical;
+            padding: 10px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(148,163,184,0.35);
+            background: rgba(2,6,23,0.55);
+            color: var(--text-main);
+            outline: none;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            padding: 9px 12px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 12px;
+            background: rgba(148,163,184,0.14);
+            color: var(--text-main);
+            border: 1px solid rgba(148,163,184,0.25);
+        }
+
+            button.primary {
+                background: rgba(34,197,94,0.14);
+                border-color: rgba(34,197,94,0.35);
+            }
+
+            button.danger {
+                background: rgba(239,68,68,0.14);
+                border-color: rgba(239,68,68,0.35);
+            }
+
+        .hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
         .footer {
             font-size: 11px;
             color: var(--text-muted);
@@ -330,160 +422,175 @@
 
             .footer strong {
                 color: #e5e7eb;
-                font-weight: 500;
+                font-weight: 600;
             }
+
+        code {
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
     <div class="app-shell">
         <div class="card">
-            <div class="card-header">
+
+            <!-- Header -->
+            <div class="header">
                 <div class="title-block">
                     <div class="title-row">
-                        <div class="pill">Real-time</div>
-                        <div class="title">Task Notifications</div>
+                        <span class="pill">Real-time</span>
+                        <span class="title">Task Notifications</span>
                     </div>
                     <div class="subtitle">Live events from your ASP.NET Core + SignalR API.</div>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <div class="env-pill">Environment: Development</div>
-                    <div id="status" class="status">
+                <div class="right-header">
+                    <span id="env" class="env-pill">Environment: Development</span>
+
+                    <div id="status" class="status warn">
                         <span class="status-dot"></span>
-                        <span id="status-text">Connecting…</span>
+                        <span id="status-text">Not connected</span>
                     </div>
                 </div>
             </div>
 
-            <div class="card-body">
-                <!-- Left: stream -->
-                <div class="column">
-                    <div class="column-title">Stream</div>
-                    <div id="messages" class="message-list">
-                        <div id="empty-state" class="message-empty">
-                            No events yet. Trigger a task action to see updates here.
+            <!-- Body -->
+            <div class="body">
+
+                <!-- Left: messages -->
+                <div class="col">
+                    <div class="col-title">Stream</div>
+
+                    <div id="messages" class="messages">
+                        <div id="empty-state" class="empty">
+                            No events yet. Log in, then trigger a task action to see updates.
                         </div>
                     </div>
                 </div>
 
-                <!-- Right: meta -->
-                <div class="column">
-                    <div class="column-title">Legend</div>
+                <!-- Right: controls / legend -->
+                <div class="col">
+                    <div class="col-title">Controls</div>
 
                     <div class="legend">
-                        <div class="legend-pill">
-                            <span class="legend-dot" style="background:#4ade80;"></span>
-                            <span>Created</span>
-                        </div>
-                        <div class="legend-pill">
-                            <span class="legend-dot" style="background:#60a5fa;"></span>
-                            <span>Updated</span>
-                        </div>
-                        <div class="legend-pill">
-                            <span class="legend-dot" style="background:#f87171;"></span>
-                            <span>Deleted</span>
-                        </div>
-                        <div class="legend-pill">
-                            <span class="legend-dot" style="background:#9ca3af;"></span>
-                            <span>Other</span>
-                        </div>
+                        <span class="legend-pill"><span class="legend-dot" style="background:var(--created)"></span>Created</span>
+                        <span class="legend-pill"><span class="legend-dot" style="background:var(--updated)"></span>Updated</span>
+                        <span class="legend-pill"><span class="legend-dot" style="background:var(--deleted)"></span>Deleted</span>
+                        <span class="legend-pill"><span class="legend-dot" style="background:var(--other)"></span>Other</span>
                     </div>
 
-                    <div style="margin-top:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
-                        Typical messages:
-                        <br />• <code style="font-size:11px;">Task created: Title</code>
-                        <br />• <code style="font-size:11px;">Task updated: Title</code>
-                        <br />• <code style="font-size:11px;">Task deleted: id</code>
+                    <div class="panel">
+                        <label>
+                            JWT Token (paste from Postman login)
+                            <textarea id="token" placeholder="Paste JWT token here..."></textarea>
+                        </label>
+
+                        <div class="row">
+                            <button class="primary" id="btn-save">Save Token</button>
+                            <button class="primary" id="btn-connect">Connect</button>
+                            <button class="danger" id="btn-clear">Clear</button>
+                        </div>
+
+                        <div class="hint">
+                            1) Login in Postman: <code>POST /api/auth/login</code><br />
+                            2) Copy <code>token</code> value → paste here → Connect.<br />
+                            3) Trigger tasks in Swagger/Postman to see notifications.
+                        </div>
                     </div>
                 </div>
+
             </div>
 
+            <!-- Footer -->
             <div class="footer">
-                <span><strong>Status:</strong> <span id="footer-status">Connecting…</span></span>
+                <span><strong>Status:</strong> <span id="footer-status">Not connected</span></span>
                 <span>ASP.NET Core · SignalR · MongoDB</span>
             </div>
         </div>
     </div>
 
     <script>
-        const statusEl = document.getElementById("status");
-        const statusTextEl = document.getElementById("status-text");
-        const footerStatusEl = document.getElementById("footer-status");
-        const messagesEl = document.getElementById("messages");
-        const emptyStateEl = document.getElementById("empty-state");
+        /**
+         * ==========================
+         *  DOM Helpers / UI
+         * ==========================
+         */
+        const el = (id) => document.getElementById(id);
 
-        function setStatus(ok, message) {
-            if (ok) {
-                statusEl.classList.remove("error");
-                statusTextEl.textContent = message || "Connected";
-                footerStatusEl.textContent = "Connected";
-            } else {
-                statusEl.classList.add("error");
-                statusTextEl.textContent = message || "Connection error";
-                footerStatusEl.textContent = "Error";
+        const statusEl = el("status");
+        const statusTextEl = el("status-text");
+        const footerStatusEl = el("footer-status");
+        const messagesEl = el("messages");
+
+        function setStatus(state, text) {
+            // state: "ok" | "warn" | "error"
+            statusEl.classList.remove("warn", "error");
+            if (state === "warn") statusEl.classList.add("warn");
+            if (state === "error") statusEl.classList.add("error");
+            if (state === "ok") {
+                statusEl.style.borderColor = "rgba(34, 197, 94, 0.5)";
+                statusEl.style.background = "rgba(34, 197, 94, 0.18)";
+                statusEl.style.color = "var(--ok)";
             }
+
+            statusTextEl.textContent = text;
+            footerStatusEl.textContent = text;
         }
 
         function detectType(message) {
-            const m = message.toLowerCase();
+            const m = String(message || "").toLowerCase();
             if (m.includes("created")) return "created";
             if (m.includes("updated")) return "updated";
             if (m.includes("deleted")) return "deleted";
-            return "info";
+            return "other";
         }
 
         function addMessage(message) {
-            if (emptyStateEl) {
-                emptyStateEl.remove();
-            }
+            const empty = el("empty-state");
+            if (empty) empty.remove();
 
             const type = detectType(message);
 
             const item = document.createElement("div");
-            item.className = "message-item";
+            item.className = "msg";
 
             const dot = document.createElement("div");
-            dot.className = "message-timeline-dot";
-
-            if (type === "created") dot.style.background = "#4ade80";
-            else if (type === "updated") dot.style.background = "#60a5fa";
-            else if (type === "deleted") dot.style.background = "#f87171";
-            else dot.style.background = "#9ca3af";
+            dot.className = "dot";
+            dot.style.background =
+                type === "created" ? "var(--created)" :
+                    type === "updated" ? "var(--updated)" :
+                        type === "deleted" ? "var(--deleted)" : "var(--other)";
 
             const content = document.createElement("div");
-            content.className = "message-content";
+            content.className = "content";
 
-            const title = document.createElement("div");
-            title.className = "message-text";
-            title.textContent = message;
+            const text = document.createElement("div");
+            text.className = "text";
+            text.textContent = message;
 
             const meta = document.createElement("div");
-            meta.className = "message-meta";
+            meta.className = "meta";
 
             const typePill = document.createElement("span");
-            typePill.className = "type-pill " + (
-                type === "created" ? "type-created" :
-                    type === "updated" ? "type-updated" :
-                        type === "deleted" ? "type-deleted" : "type-info"
-            );
+            typePill.className = "type " + type;
             typePill.textContent =
                 type === "created" ? "Created" :
                     type === "updated" ? "Updated" :
-                        type === "deleted" ? "Deleted" : "Info";
+                        type === "deleted" ? "Deleted" : "Other";
 
             const source = document.createElement("span");
-            source.className = "meta-pill";
+            source.className = "tag";
             source.textContent = "NotificationHub";
 
             const time = document.createElement("span");
-            time.className = "meta-time";
+            time.className = "tag";
             time.textContent = new Date().toLocaleTimeString();
 
             meta.appendChild(typePill);
             meta.appendChild(source);
             meta.appendChild(time);
 
-            content.appendChild(title);
+            content.appendChild(text);
             content.appendChild(meta);
 
             item.appendChild(dot);
@@ -493,34 +600,117 @@
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/hubs/notifications")
-            .withAutomaticReconnect()
-            .build();
+        /**
+         * ==========================
+         *  Token Storage
+         * ==========================
+         */
+        const TOKEN_KEY = "jwtToken";
 
-        connection.on("ReceiveMessage", (message) => {
-            addMessage(message);
-        });
+        function getToken() {
+            return localStorage.getItem(TOKEN_KEY) || "";
+        }
 
-        connection
-            .start()
-            .then(() => setStatus(true, "Connected"))
-            .catch((err) => {
-                console.error(err.toString());
-                setStatus(false, "Failed to connect");
+        function setToken(token) {
+            localStorage.setItem(TOKEN_KEY, token);
+        }
+
+        function clearToken() {
+            localStorage.removeItem(TOKEN_KEY);
+        }
+
+        // Load existing token into textarea on page load
+        el("token").value = getToken();
+
+        /**
+         * ==========================
+         *  SignalR Connection
+         * ==========================
+         */
+        let connection = null;
+
+        function buildConnection() {
+            // Token is sent using accessTokenFactory. This is how JWT auth works for SignalR.
+            const token = getToken();
+
+            return new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/notifications", {
+                    accessTokenFactory: () => token
+                })
+                .withAutomaticReconnect()
+                .build();
+        }
+
+        async function connect() {
+            if (connection) {
+                // If already created, stop it first
+                try { await connection.stop(); } catch { }
+                connection = null;
+            }
+
+            const token = getToken();
+            if (!token) {
+                setStatus("warn", "Paste JWT token first");
+                return;
+            }
+
+            setStatus("warn", "Connecting…");
+
+            connection = buildConnection();
+
+            // Receive server events
+            connection.on("ReceiveMessage", (message) => {
+                addMessage(message);
             });
 
-        connection.onreconnecting(() => {
-            setStatus(false, "Reconnecting…");
+            // Connection lifecycle events
+            connection.onreconnecting(() => setStatus("warn", "Reconnecting…"));
+            connection.onreconnected(() => setStatus("ok", "Connected"));
+            connection.onclose(() => setStatus("error", "Disconnected"));
+
+            try {
+                await connection.start();
+                setStatus("ok", "Connected");
+            } catch (err) {
+                console.error(err);
+                setStatus("error", "Failed to connect (check token)");
+            }
+        }
+
+        /**
+         * ==========================
+         *  UI Buttons
+         * ==========================
+         */
+        el("btn-save").addEventListener("click", () => {
+            const token = el("token").value.trim();
+            if (!token) {
+                setStatus("warn", "Token is empty");
+                return;
+            }
+            setToken(token);
+            setStatus("warn", "Token saved");
         });
 
-        connection.onreconnected(() => {
-            setStatus(true, "Connected");
+        el("btn-connect").addEventListener("click", () => {
+            // Always save latest textarea token before connecting
+            const token = el("token").value.trim();
+            if (token) setToken(token);
+            connect();
         });
 
-        connection.onclose(() => {
-            setStatus(false, "Connection closed");
+        el("btn-clear").addEventListener("click", async () => {
+            el("token").value = "";
+            clearToken();
+            if (connection) {
+                try { await connection.stop(); } catch { }
+                connection = null;
+            }
+            setStatus("warn", "Not connected");
         });
+
+        // Initial status
+        setStatus("warn", getToken() ? "Ready (token saved)" : "Not connected");
     </script>
 </body>
 </html>
